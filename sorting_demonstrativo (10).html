@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorting — Demonstrativo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --yellow:#FFE600;--yellow-dark:#E6CF00;
+  --blue:#3483FA;--blue-dark:#2968C8;--blue-soft:#EEF3FF;
+  --bg:#EDEDED;--surface:#FFFFFF;--surface2:#F5F5F5;
+  --border:#E0E0E0;--border2:#CCCCCC;
+  --text:#333333;--muted:#999999;
+  --green:#00A650;--green-soft:#E6F7EE;--green-mid:#00883F;
+  --red:#F04E37;--red-soft:#FEEFED;
+  --amber:#F59E0B;--amber-soft:#FFFBEB;
+  --radius:8px;--radius-lg:10px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Helvetica Neue',Arial,sans-serif;font-size:14px;min-height:100vh;line-height:1.5;}
+
+/* TOPBAR */
+.topbar{background:var(--yellow);padding:0 2rem;height:54px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--yellow-dark);}
+.topbar-logo{display:flex;align-items:center;}
+.topbar-logo img{height:30px;width:auto;display:block;}
+.topbar-divider{width:1px;height:24px;background:rgba(0,0,0,0.15);}
+.topbar-title{font-size:13px;color:#555;font-weight:500;}
+
+.shell{max-width:1280px;margin:0 auto;padding:1.5rem 1.5rem 3rem;}
+.page-header{margin-bottom:1.5rem;}
+.eyebrow{font-size:11px;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;}
+h1{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.01em;}
+.header-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+.section-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;}
+
+/* UPLOAD */
+.upload-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem;}
+.upload-card{background:var(--surface);border:1.5px dashed var(--border2);border-radius:var(--radius);padding:10px 12px;position:relative;overflow:hidden;transition:border-color .2s,background .2s;cursor:pointer;display:flex;align-items:center;gap:10px;}
+.upload-card:hover{border-color:var(--blue);background:#F0F5FF;}
+.upload-card.loaded{border-style:solid;border-color:var(--green);background:var(--green-soft);}
+.upload-card.optional{border-color:#DDCC00;}
+.upload-card input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-card-icon{font-size:20px;flex-shrink:0;}
+.upload-card-info{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.upload-card-label{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;}
+.upload-card-desc{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.upload-card-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;display:inline-block;width:fit-content;}
+.tag-required{background:#EEF3FF;color:var(--blue);}
+.tag-optional{background:#FFFDE6;color:#B8A800;}
+.upload-status{font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;display:inline-block;width:fit-content;}
+.status-wait{background:#F0F0F0;color:var(--muted);}
+.status-ok{background:var(--green-soft);color:var(--green);}
+.btn-run{width:100%;padding:13px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;}
+.btn-run:hover:not(:disabled){background:var(--blue-dark);}
+.btn-run:active:not(:disabled){transform:scale(.99);}
+.btn-run:disabled{background:#C0C0C0;cursor:not-allowed;}
+.progress-bar-wrap{height:3px;background:#E0E0E0;border-radius:3px;margin-top:10px;overflow:hidden;display:none;}
+.progress-bar{height:100%;background:var(--blue);border-radius:3px;transition:width .3s;}
+.progress-label{font-size:11px;color:var(--muted);margin-top:5px;display:none;}
+.error-box{background:var(--red-soft);border:1px solid rgba(240,78,55,.25);border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--red);margin-top:10px;display:none;}
+
+/* ANALYSIS PANELS */
+#results{display:none;}
+.metrics-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.5rem;}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.metric-label{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:5px;}
+.metric-value{font-size:24px;font-weight:700;letter-spacing:-0.02em;color:var(--text);}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.panels-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start;margin-bottom:1.5rem;}
+.panel-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.panel-col-header{padding:12px 16px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.panel-col-title{font-size:13px;font-weight:700;color:var(--text);}
+.panel-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--yellow);color:#333;}
+.panel-col-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+.mini-cell{background:var(--surface2);padding:9px 12px;}
+.mini-cell-label{font-size:10px;color:var(--muted);font-weight:500;margin-bottom:2px;}
+.mini-cell-value{font-size:16px;font-weight:700;}
+.mini-cell-value.sm{font-size:13px;}
+.panel-col-body{padding:0;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--surface2);}
+th{padding:7px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:1px solid var(--border);}
+td{padding:7px 12px;border-top:1px solid var(--border);font-size:12px;color:var(--text);}
+tr:hover td{background:#FAFAFA;}
+tr.total-row td{background:#FFF9E6;font-weight:700;font-size:12px;color:#333;}
+.pill{display:inline-block;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;}
+.pill-sim{background:var(--green-soft);color:var(--green);}
+.pill-nao{background:var(--red-soft);color:var(--red);}
+.pct-bar-wrap{width:40px;height:3px;background:#E8E8E8;border-radius:2px;display:inline-block;vertical-align:middle;margin-left:4px;}
+.pct-bar-fill{height:100%;border-radius:2px;}
+.empty-state{padding:1.5rem;text-align:center;color:var(--muted);font-size:12px;}
+.panel-col-footer{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;}
+.btn-export{flex:1;min-width:60px;padding:6px 8px;font-family:inherit;font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;border:1px solid transparent;transition:opacity .15s;text-align:center;}
+.btn-export:hover{opacity:.8;}
+.btn-export.green{background:var(--green-soft);color:var(--green);border-color:rgba(0,166,80,.2);}
+.btn-export.red{background:var(--red-soft);color:var(--red);border-color:rgba(240,78,55,.2);}
+.btn-export.all{background:#EEF3FF;color:var(--blue);border-color:rgba(52,131,250,.2);}
+
+/* WHATSAPP */
+#whatsapp-section{display:none;margin-bottom:1.5rem;}
+.wa-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.wa-card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.wa-card-title{font-size:13px;font-weight:700;}
+.wa-card-title span{font-size:16px;margin-right:6px;}
+.btn-copy{padding:7px 16px;background:#25D366;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.btn-copy:hover{opacity:.85;}
+.btn-copy.copied{background:var(--green);}
+.wa-preview{padding:16px;background:#ECE5DD;font-family:'Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.6;color:#111;white-space:pre-wrap;word-break:break-word;}
+.wa-bubble{background:#DCF8C6;border-radius:10px 10px 0 10px;padding:10px 14px;display:inline-block;max-width:100%;box-shadow:0 1px 2px rgba(0,0,0,.15);}
+
+/* ===================== DEMONSTRATIVO GERENCIAL COMPACTO ===================== */
+#report-section{display:none;margin-bottom:2rem;}
+.report-actions{display:flex;gap:8px;margin-bottom:10px;justify-content:flex-end;}
+.btn-save-img{padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;display:flex;align-items:center;gap:6px;}
+.btn-save-img:hover{opacity:.85;}
+.btn-save-img:disabled{opacity:.5;cursor:not-allowed;}
+.report-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;width:100%;}
+.report-header{background:var(--blue);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.report-header-left{display:flex;align-items:center;gap:10px;}
+.report-facility{font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.01em;}
+.report-status-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;}
+.badge-ok{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.35);}
+.badge-pending{background:#F04E37;color:#fff;}
+.report-header-right{text-align:right;}
+.report-date{font-size:10px;color:rgba(255,255,255,.85);font-weight:500;}
+.report-timestamp{font-size:9px;color:rgba(255,255,255,.5);margin-top:1px;}
+.report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+.kpi-cell{background:var(--surface);padding:7px 10px;}
+.kpi-label{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+.kpi-value{font-size:17px;font-weight:800;letter-spacing:-0.02em;color:var(--text);line-height:1.1;}
+.kpi-value.green{color:var(--green);}
+.kpi-value.red{color:var(--red);}
+.kpi-value.blue{color:var(--blue);}
+.kpi-sub{font-size:9px;color:var(--muted);margin-top:1px;}
+.report-groups{padding:8px 10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.group-card{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.group-card-header{padding:6px 8px;display:flex;align-items:center;gap:6px;}
+.group-card-header.integral{background:var(--green-soft);}
+.group-card-header.pending{background:var(--red-soft);}
+.group-card-header.empty{background:var(--surface2);}
+.group-tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;min-width:34px;text-align:center;white-space:nowrap;}
+.group-tag.las{background:var(--yellow);color:#333;}
+.group-tag.lor{background:#3483FA;color:#fff;}
+.group-tag.low{background:#9B59B6;color:#fff;}
+.group-card-title{font-size:10px;font-weight:700;flex:1;line-height:1.2;}
+.group-card-title.integral{color:var(--green-mid);}
+.group-card-title.pending{color:var(--red);}
+.group-card-title.empty{color:var(--muted);}
+.group-status-icon{font-size:13px;}
+.group-progress-wrap{padding:5px 8px;border-top:1px solid var(--border);background:var(--surface);}
+.group-progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.group-progress-label{font-size:9px;color:var(--muted);font-weight:500;}
+.group-progress-pct{font-size:10px;font-weight:700;}
+.progress-track{height:4px;background:#F0F0F0;border-radius:99px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:99px;}
+.progress-fill.green{background:var(--green);}
+.progress-fill.red{background:var(--red);}
+.progress-fill.amber{background:var(--amber);}
+.group-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);}
+.group-stat{background:var(--surface);padding:4px 7px;}
+.group-stat-label{font-size:9px;color:var(--muted);font-weight:500;margin-bottom:1px;}
+.group-stat-value{font-size:11px;font-weight:700;}
+.pending-ids-wrap{padding:5px 8px;border-top:1px solid var(--border);background:#FFFAF9;}
+.pending-ids-title{font-size:9px;font-weight:700;color:var(--red);margin-bottom:4px;}
+.pending-ids-grid{display:flex;flex-wrap:wrap;gap:3px;}
+.pending-id-chip{font-size:9px;font-family:'Courier New',monospace;font-weight:600;background:var(--red-soft);color:var(--red);border:1px solid rgba(240,78,55,.2);padding:1px 5px;border-radius:3px;}
+.pending-more{font-size:9px;color:var(--muted);padding:1px 5px;font-style:italic;}
+.report-footer-bar{padding:7px 10px;border-top:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:8px;}
+.perf-score{font-size:12px;font-weight:800;white-space:nowrap;}
+.perf-score.full{color:var(--green);}
+.perf-score.high{color:var(--blue);}
+.perf-score.mid{color:var(--amber);}
+.perf-score.low-score{color:var(--red);}
+.perf-bar-track{flex:1;min-width:80px;height:5px;background:#E8E8E8;border-radius:99px;overflow:hidden;}
+.perf-bar-fill{height:100%;border-radius:99px;}
+.perf-label-right{font-size:9px;color:var(--muted);white-space:nowrap;}
+.report-btn-print{padding:5px 10px;background:var(--blue-soft);color:var(--blue);border:1px solid rgba(52,131,250,.25);border-radius:var(--radius);font-family:inherit;font-size:10px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.report-btn-print:hover{opacity:.8;}
+.btn-reset{display:none;margin-top:6px;width:100%;padding:11px;background:var(--surface);color:var(--muted);border:1px solid var(--border2);border-radius:var(--radius);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s,color .15s;}
+.btn-reset:hover{background:#FFF0EE;color:var(--red);border-color:rgba(240,78,55,.3);}
+.btn-refresh{display:none;margin-top:6px;width:100%;padding:11px;background:var(--surface);color:var(--blue);border:1px solid rgba(52,131,250,.3);border-radius:var(--radius);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;}
+.btn-refresh:hover{background:var(--blue-soft);}
+.action-row{display:flex;gap:8px;}
+
+.footer{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.footer-text{font-size:11px;color:var(--muted);}
+
+/* ===================== GRÁFICO MOTIVOS ===================== */
+.motivos-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.motivos-header{background:var(--surface2);padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.motivos-title{font-size:13px;font-weight:700;color:var(--text);}
+.motivos-total{font-size:11px;color:var(--muted);}
+.motivos-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+.motivo-row{display:grid;grid-template-columns:200px 1fr 48px 90px 48px;align-items:center;gap:10px;}
+.motivo-header-row .motivo-col-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.motivo-header-row .motivo-col-num{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;text-align:right;}
+.motivo-label{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.motivo-bar-track{height:20px;background:#F0F0F0;border-radius:4px;overflow:hidden;position:relative;}
+.motivo-bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:7px;font-size:10px;font-weight:700;white-space:nowrap;min-width:4px;}
+.motivo-count{font-size:13px;font-weight:700;color:var(--text);text-align:right;}
+.motivo-gmv{font-size:11px;font-weight:600;color:var(--green);text-align:right;}
+.motivo-pct{font-size:11px;color:var(--muted);text-align:right;}
+.motivos-divider{height:1px;background:var(--border);margin:2px 0;}
+.motivo-row.total-row .motivo-label{font-weight:700;font-size:13px;}
+.motivo-row.total-row .motivo-count{color:var(--blue);font-size:14px;}
+.motivo-row.total-row .motivo-pct{font-weight:700;color:var(--text);font-size:12px;}
+
+@media(max-width:900px){
+  .panels-row,.report-kpis,.group-stats{grid-template-columns:1fr;}
+  .metrics-grid{grid-template-columns:repeat(2,1fr);}
+  .upload-grid{grid-template-columns:repeat(2,1fr);}
+  .report-kpis{grid-template-columns:repeat(2,1fr);}
+  .group-stats{grid-template-columns:repeat(2,1fr);}
+}
+@media print{
+  .topbar,.upload-grid,.btn-run,.panel-col-footer,.btn-copy,.report-btn-print,#upload-screen,#results,#whatsapp-section,.footer{display:none!important;}
+  #report-section{display:block!important;}
+  body{background:#fff;}
+  .shell{padding:0;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <img src="https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/6.6.92/mercadolibre/logo__large_plus@2x.png" alt="Mercado Livre" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <span style="display:none;font-size:18px;font-weight:800;color:#333;letter-spacing:-0.03em;">mercado<span style="color:#3483FA">livre</span></span>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-title">Operações · Análise de Baixas</div>
+</div>
+
+<div class="shell">
+  <div class="page-header">
+    <div class="eyebrow">Base de Análise de Baixas</div>
+    <h1>Baixas × IDs em DIT</h1>
+    <div class="header-sub">Cruze os arquivos, analise os grupos e gere o demonstrativo gerencial</div>
+  </div>
+
+  <div id="upload-screen">
+    <div class="upload-grid">
+      <div class="upload-card" id="card-indiana">
+        <div class="upload-card-icon">🗂️</div>
+        <div class="upload-card-info">
+          <span class="upload-card-tag tag-required">Obrigatório</span>
+          <div class="upload-card-label">Indiana</div>
+          <div class="upload-card-desc">Base de IDs em situação DIT</div>
+          <span class="upload-status status-wait" id="badge-indiana">aguardando</span>
+        </div>
+        <input type="file" accept=".csv" id="file-indiana">
+      </div>
+      <div class="upload-card" id="card-lm">
+        <div class="upload-card-icon">📦</div>
+        <div class="upload-card-info">
+          <span class="upload-card-tag tag-required">Obrigatório</span>
+          <div class="upload-card-label">LM</div>
+          <div class="upload-card-desc">col 9 = TRAMOS · col 3 = Facility</div>
+          <span class="upload-status status-wait" id="badge-lm">aguardando</span>
+        </div>
+        <input type="file" accept=".csv" id="file-lm">
+      </div>
+      <div class="upload-card" id="card-ow">
+        <div class="upload-card-icon">🚚</div>
+        <div class="upload-card-info">
+          <span class="upload-card-tag tag-required">Obrigatório</span>
+          <div class="upload-card-label">OW</div>
+          <div class="upload-card-desc">col 6 = SHP_LG_STATUS · col 4 = Facility</div>
+          <span class="upload-status status-wait" id="badge-ow">aguardando</span>
+        </div>
+        <input type="file" accept=".csv" id="file-ow">
+      </div>
+      <div class="upload-card optional" id="card-baixas">
+        <div class="upload-card-icon">✅</div>
+        <div class="upload-card-info">
+          <span class="upload-card-tag tag-optional">Opcional — gera demonstrativo</span>
+          <div class="upload-card-label">Pós-Baixas</div>
+          <div class="upload-card-desc">IDs baixados · col 1 = ID_PACOTE</div>
+          <span class="upload-status status-wait" id="badge-baixas">aguardando</span>
+        </div>
+        <input type="file" accept=".csv" id="file-baixas">
+      </div>
+    </div>
+    <button class="btn-run" id="btn-run" disabled onclick="processFiles()">Processar arquivos</button>
+    <div class="action-row">
+      <button class="btn-refresh" id="btn-refresh" onclick="refreshProcess()">⟳ Atualizar — manter arquivos base</button>
+      <button class="btn-reset" id="btn-reset" onclick="resetAll()">↺ Limpar tudo</button>
+    </div>
+    <div class="progress-bar-wrap" id="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+    <div class="progress-label" id="progress-label"></div>
+    <div class="error-box" id="error-box"></div>
+  </div>
+
+  <!-- Análise operacional -->
+  <div id="results">
+    <div class="section-label">Resumo geral</div>
+    <div class="metrics-grid" id="metrics-grid"></div>
+    <div class="section-label">Dinâmicas por grupo</div>
+    <div class="panels-row">
+      <div class="panel-col" id="panel-las"></div>
+      <div class="panel-col" id="panel-lor"></div>
+      <div class="panel-col" id="panel-low"></div>
+    </div>
+  </div>
+
+  <!-- WhatsApp -->
+  <div id="whatsapp-section">
+    <div class="section-label">Mensagem WhatsApp</div>
+    <div class="wa-card">
+      <div class="wa-card-header">
+        <div class="wa-card-title"><span>💬</span>Resumo de baixas — pronto para copiar</div>
+        <button class="btn-copy" id="btn-copy" onclick="copyMsg()">Copiar mensagem</button>
+      </div>
+      <div class="wa-preview"><div class="wa-bubble" id="wa-text"></div></div>
+    </div>
+  </div>
+
+  <!-- Demonstrativo Gerencial -->
+  <div id="report-section">
+    <div class="section-label">Demonstrativo gerencial de baixas</div>
+    <div class="report-actions">
+      <button class="btn-save-img" id="btn-save-img" onclick="saveAsImage()">📸 Salvar como imagem</button>
+    </div>
+    <div class="report-wrap" id="report-wrap"></div>
+  </div>
+
+  <!-- Gráfico Motivos DIT -->
+  <div id="motivos-section" style="display:none;margin-bottom:2rem;">
+    <div class="section-label">Check Motivo DIT — distribuição dos SIM</div>
+    <div class="motivos-wrap" id="motivos-wrap"></div>
+  </div>
+
+  <div class="footer">
+    <span class="footer-text">sorting_demonstrativo.html</span>
+    <span class="footer-text" id="footer-date"></span>
+  </div>
+</div>
+
+<script>
+document.getElementById('footer-date').textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+let files={indiana:null,lm:null,ow:null,baixas:null};
+let processed={};
+
+function setupInput(fid,key,cid,bid){
+  document.getElementById(fid).addEventListener('change',function(e){
+    const f=e.target.files[0]; if(!f) return;
+    files[key]=f;
+    const badge=document.getElementById(bid);
+    badge.textContent=f.name.length>22?f.name.substring(0,20)+'…':f.name;
+    badge.className='upload-status status-ok';
+    document.getElementById(cid).classList.add('loaded');
+    document.getElementById(cid).classList.remove('optional');
+    checkReady();
+  });
+}
+setupInput('file-indiana','indiana','card-indiana','badge-indiana');
+setupInput('file-lm','lm','card-lm','badge-lm');
+setupInput('file-ow','ow','card-ow','badge-ow');
+setupInput('file-baixas','baixas','card-baixas','badge-baixas');
+
+function checkReady(){document.getElementById('btn-run').disabled=!(files.indiana&&files.lm&&files.ow);}
+
+function parseCSV(file){
+  return new Promise((res,rej)=>Papa.parse(file,{header:true,skipEmptyLines:true,complete:r=>res(r),error:e=>rej(e)}));
+}
+function findCol(headers,name){const n=name.toLowerCase();return headers.find(h=>h&&h.toLowerCase().includes(n))||null;}
+function sumGMV(rows,col){return rows.reduce((s,r)=>{const v=parseFloat((r[col]||'0').toString().replace(',','.'));return s+(isNaN(v)?0:v);},0);}
+function fmtMoney(v){return '$'+v.toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function fmtNum(v){return v.toLocaleString('pt-BR');}
+function setProgress(p,l){
+  document.getElementById('progress-wrap').style.display='block';
+  document.getElementById('progress-label').style.display='block';
+  document.getElementById('progress-bar').style.width=p+'%';
+  document.getElementById('progress-label').textContent=l;
+}
+function hideProgress(){
+  document.getElementById('progress-wrap').style.display='none';
+  document.getElementById('progress-label').style.display='none';
+}
+
+async function processFiles(){
+  const btn=document.getElementById('btn-run');
+  btn.disabled=true;
+  document.getElementById('error-box').style.display='none';
+  document.getElementById('results').style.display='none';
+  document.getElementById('whatsapp-section').style.display='none';
+  document.getElementById('report-section').style.display='none';
+  try{
+    setProgress(10,'Lendo arquivos CSV…');
+    const tasks=[parseCSV(files.indiana),parseCSV(files.lm),parseCSV(files.ow)];
+    if(files.baixas) tasks.push(parseCSV(files.baixas));
+    const results=await Promise.all(tasks);
+    const [rInd,rLm,rOw]=results;
+    const rBaixas=results[3]||null;
+
+    setProgress(35,'Construindo base Indiana…');
+    const indH=rInd.meta.fields, lmH=rLm.meta.fields, owH=rOw.meta.fields;
+    const indIdCol=findCol(indH,'SHP_SHIPMENT_ID')||indH[0];
+    const lmIdCol=findCol(lmH,'SHP_SHIPMENT_ID')||lmH[0];
+    const owIdCol=findCol(owH,'SHP_SHIPMENT_ID')||owH[0];
+    const lmTramosCol = findCol(lmH,'TRAMOS') || lmH[9] || lmH[8];
+    const owStatusCol = findCol(owH,'SHP_LG_STATUS') || owH[5];
+    const lmGmvCol = findCol(lmH,'GMV') || lmH[lmH.length-1];
+    const owGmvCol = findCol(owH,'GMV') || owH[owH.length-1];
+    const facility=(rLm.data[0]?.[lmH[2]]||rOw.data[0]?.[owH[3]]||'FILIAL').trim();
+
+    const indMotivoCol=indH[3]||indH[indH.length-1];
+    const indSet=new Set(rInd.data.map(r=>(r[indIdCol]||'').trim()));
+    // Mapa ID → Motivo para o gráfico
+    const indMotivoMap={};
+    rInd.data.forEach(r=>{const id=(r[indIdCol]||'').trim();if(id) indMotivoMap[id]=(r[indMotivoCol]||'').trim();});
+    const norm=s=>(s||'').trim().toLowerCase();
+
+    setProgress(55,'Cruzando IDs…');
+    const lmFull=rLm.data.map(r=>{const id=(r[lmIdCol]||'').trim();return{...r,_ID:id,_TRAMOS:(r[lmTramosCol]||'').trim(),CHECK_WELL:indSet.has(id)?'SIM':'NÃO'};});
+    const owFull=rOw.data.map(r=>{const id=(r[owIdCol]||'').trim();return{...r,_ID:id,_STATUS:(r[owStatusCol]||'').trim(),CHECK_WELL:indSet.has(id)?'SIM':'NÃO'};});
+    const lasRows=lmFull.filter(r=>norm(r._TRAMOS)==='at station');
+    const lorRows=lmFull.filter(r=>['nex','on route','xpt e dc','xpt','dc'].includes(norm(r._TRAMOS)));
+    const lowRows=owFull.filter(r=>norm(r._STATUS)==='on_way');
+
+    let baixasSet=null;
+    if(rBaixas){const bH=rBaixas.meta.fields;baixasSet=new Set(rBaixas.data.map(r=>(r[bH[0]]||'').trim()));}
+
+    processed={las:lasRows,lor:lorRows,low:lowRows,lmFull,owFull,lmTramosCol,owStatusCol,lmIdCol,owIdCol,lmGmvCol,owGmvCol,baixasSet,facility,indMotivoMap};
+
+    setProgress(80,'Renderizando…');
+    renderMetrics(lmFull,owFull,lmGmvCol,owGmvCol);
+    renderPanel('panel-las','LAS — At Station','LAS',lasRows,lmTramosCol,lmIdCol,lmGmvCol);
+    renderPanel('panel-lor','LOR — On Route / NEX / XPT','LOR',lorRows,lmTramosCol,lmIdCol,lmGmvCol);
+    renderPanel('panel-low','LOW — On Way','LOW',lowRows,owStatusCol,owIdCol,owGmvCol);
+    renderMotivosChart([...lmFull,...owFull],indMotivoMap,lmGmvCol,owGmvCol,lmFull,owFull);
+    document.getElementById('results').style.display='block';
+    document.getElementById('btn-refresh').style.display='block';
+    document.getElementById('btn-reset').style.display='block';
+    document.getElementById('btn-run').style.display='none';
+
+    if(baixasSet){
+      renderWhatsApp(lasRows,lorRows,lowRows,baixasSet,facility,lmGmvCol,owGmvCol);
+      renderReport(lasRows,lorRows,lowRows,baixasSet,facility,lmGmvCol,owGmvCol);
+      document.getElementById('whatsapp-section').style.display='block';
+      document.getElementById('report-section').style.display='block';
+    }
+    hideProgress();
+  }catch(e){
+    const box=document.getElementById('error-box');
+    box.textContent='⚠ Erro: '+e.message;
+    box.style.display='block';
+    hideProgress();
+  }
+  btn.disabled=false;
+}
+
+/* =================== RENDER ANALYSIS =================== */
+function renderMetrics(lmFull,owFull,lmGmvCol,owGmvCol){
+  const all=[...lmFull,...owFull];
+  const sim=all.filter(r=>r.CHECK_WELL==='SIM').length;
+  const nao=all.filter(r=>r.CHECK_WELL==='NÃO').length;
+  const pct=all.length>0?((sim/all.length)*100).toFixed(1):'0.0';
+  const gmvSim=sumGMV(lmFull.filter(r=>r.CHECK_WELL==='SIM'),lmGmvCol)+sumGMV(owFull.filter(r=>r.CHECK_WELL==='SIM'),owGmvCol);
+  const gmvTot=sumGMV(lmFull,lmGmvCol)+sumGMV(owFull,owGmvCol);
+  document.getElementById('metrics-grid').innerHTML=`
+    <div class="metric-card"><div class="metric-label">Total LM</div><div class="metric-value">${fmtNum(lmFull.length)}</div><div class="metric-sub">shipments</div></div>
+    <div class="metric-card"><div class="metric-label">Total OW</div><div class="metric-value">${fmtNum(owFull.length)}</div><div class="metric-sub">shipments</div></div>
+    <div class="metric-card" style="border-color:rgba(0,166,80,.25)"><div class="metric-label">Check Well — SIM</div><div class="metric-value" style="color:var(--green)">${fmtNum(sim)}</div><div class="metric-sub" style="color:var(--green)">${pct}% do total</div></div>
+    <div class="metric-card" style="border-color:rgba(240,78,55,.25)"><div class="metric-label">Check Well — NÃO</div><div class="metric-value" style="color:var(--red)">${fmtNum(nao)}</div><div class="metric-sub" style="color:var(--red)">${(100-parseFloat(pct)).toFixed(1)}% do total</div></div>
+    <div class="metric-card" style="border-color:rgba(52,131,250,.25)"><div class="metric-label">GMV Total</div><div class="metric-value" style="font-size:18px;color:var(--blue)">${fmtMoney(gmvTot)}</div><div class="metric-sub" style="color:var(--green)">SIM: ${fmtMoney(gmvSim)}</div></div>`;
+}
+
+function buildDynamic(rows,groupCol,gmvCol){
+  const g={};
+  rows.forEach(r=>{
+    const k=r[groupCol]||r._TRAMOS||r._STATUS||'(vazio)';
+    if(!g[k]) g[k]={SIM:0,'NÃO':0,gmvSIM:0,gmvNAO:0};
+    const v=parseFloat((r[gmvCol]||'0').toString().replace(',','.'));
+    const val=isNaN(v)?0:v;
+    g[k][r.CHECK_WELL]++;
+    if(r.CHECK_WELL==='SIM') g[k].gmvSIM+=val; else g[k].gmvNAO+=val;
+  });
+  return g;
+}
+
+function renderPanel(panelId,title,badge,rows,groupCol,idCol,gmvCol){
+  const panel=document.getElementById(panelId);
+  const sim=rows.filter(r=>r.CHECK_WELL==='SIM').length;
+  const nao=rows.filter(r=>r.CHECK_WELL==='NÃO').length;
+  const total=rows.length;
+  const pct=total>0?((sim/total)*100).toFixed(1):'0.0';
+  const gmvSim=sumGMV(rows.filter(r=>r.CHECK_WELL==='SIM'),gmvCol);
+  const gmvTot=sumGMV(rows,gmvCol);
+  const tag=panelId.replace('panel-','');
+  let tableHTML='';
+  if(total===0){tableHTML='<div class="empty-state">Nenhuma linha encontrada.</div>';}
+  else{
+    const groups=buildDynamic(rows,groupCol,gmvCol);
+    let rh='';
+    Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([g,c])=>{
+      const tot=c['SIM']+c['NÃO'];
+      if(c['SIM']>0){const p=((c['SIM']/tot)*100).toFixed(1);rh+=`<tr><td>${g}</td><td><span class="pill pill-sim">SIM</span></td><td>${c['SIM']}</td><td>${fmtMoney(c.gmvSIM)}</td><td>${p}%<span class="pct-bar-wrap"><span class="pct-bar-fill" style="width:${p}%;background:var(--green)"></span></span></td></tr>`;}
+      if(c['NÃO']>0){const p=((c['NÃO']/tot)*100).toFixed(1);rh+=`<tr><td>${g}</td><td><span class="pill pill-nao">NÃO</span></td><td>${c['NÃO']}</td><td>${fmtMoney(c.gmvNAO)}</td><td>${p}%<span class="pct-bar-wrap"><span class="pct-bar-fill" style="width:${p}%;background:var(--red)"></span></span></td></tr>`;}
+    });
+    rh+=`<tr class="total-row"><td>Total geral</td><td>—</td><td>${total}</td><td>${fmtMoney(gmvTot)}</td><td>100%</td></tr>`;
+    tableHTML=`<table><thead><tr><th>${groupCol}</th><th>Check Well</th><th>Qtd</th><th>GMV USD</th><th>%</th></tr></thead><tbody>${rh}</tbody></table>`;
+  }
+  panel.innerHTML=`
+    <div class="panel-col-header"><div class="panel-col-title">${title}</div><span class="panel-badge">${badge}</span></div>
+    <div class="panel-col-mini">
+      <div class="mini-cell"><div class="mini-cell-label">Total</div><div class="mini-cell-value">${fmtNum(total)}</div></div>
+      <div class="mini-cell"><div class="mini-cell-label">SIM</div><div class="mini-cell-value" style="color:var(--green)">${fmtNum(sim)}</div></div>
+      <div class="mini-cell"><div class="mini-cell-label">NÃO</div><div class="mini-cell-value" style="color:var(--red)">${fmtNum(nao)}</div></div>
+      <div class="mini-cell" style="border-top:1px solid var(--border)"><div class="mini-cell-label">GMV Total</div><div class="mini-cell-value sm">${fmtMoney(gmvTot)}</div></div>
+      <div class="mini-cell" style="border-top:1px solid var(--border)"><div class="mini-cell-label">GMV SIM</div><div class="mini-cell-value sm" style="color:var(--green)">${fmtMoney(gmvSim)}</div></div>
+      <div class="mini-cell" style="border-top:1px solid var(--border)"><div class="mini-cell-label">% SIM</div><div class="mini-cell-value">${pct}%</div></div>
+    </div>
+    <div class="panel-col-body">${tableHTML}</div>
+    <div class="panel-col-footer">
+      <button class="btn-export green" onclick="exportIDs('${tag}','SIM')">⬇ SIM</button>
+      <button class="btn-export red" onclick="exportIDs('${tag}','NÃO')">⬇ NÃO</button>
+      <button class="btn-export all" onclick="exportIDs('${tag}','TODOS')">⬇ Todos</button>
+    </div>`;
+}
+
+/* =================== WHATSAPP =================== */
+function renderWhatsApp(lasRows,lorRows,lowRows,baixasSet,facility,lmGmvCol,owGmvCol){
+  function grupoMsg(label,rows,gmvCol){
+    const total=rows.length;
+    const gmvTot=sumGMV(rows,gmvCol);
+    if(total===0) return `${label} não havia nenhum ID para baixar.`;
+    const baixados=rows.filter(r=>baixasSet.has(r._ID)).length;
+    const pendentes=total-baixados;
+    const gmvBaixado=sumGMV(rows.filter(r=>baixasSet.has(r._ID)),gmvCol);
+    let msg=`${label} era${total>1?'m':''} ${total} ID${total>1?"'s":''} no total de ${fmtMoney(gmvTot)}\n`;
+    if(pendentes===0){msg+='Baixei integral';}
+    else{msg+=`Baixei ${baixados} ID${baixados!==1?"'s":''}${baixados>0?' ('+fmtMoney(gmvBaixado)+')':''}\n⚠️ ${pendentes} ID${pendentes!==1?"'s":''} não baixado${pendentes!==1?'s':''}`;}
+    return msg;
+  }
+  const totalBaixadoQtd=[...lasRows,...lorRows,...lowRows].filter(r=>baixasSet.has(r._ID)).length;
+  const totalBaixadoGmv=sumGMV(lasRows.filter(r=>baixasSet.has(r._ID)),lmGmvCol)+sumGMV(lorRows.filter(r=>baixasSet.has(r._ID)),lmGmvCol)+sumGMV(lowRows.filter(r=>baixasSet.has(r._ID)),owGmvCol);
+  const totalPendente=[...lasRows,...lorRows,...lowRows].filter(r=>!baixasSet.has(r._ID)).length;
+  const msg=`BAIXAS DE HOJE ${facility}: 🦏\n\n${grupoMsg('LOW',lowRows,owGmvCol)}\n\n${grupoMsg('LOR',lorRows,lmGmvCol)}\n\n${grupoMsg('LAS',lasRows,lmGmvCol)}\n\nTOTAL BAIXADO EM GRANA = ${fmtMoney(totalBaixadoGmv)}\nTOTAL BAIXADO EM PACOTES = ${totalBaixadoQtd}\n${totalPendente===0?'Não temos pendências de baixa no momento ✅':`⚠️ Ainda temos ${totalPendente} ID${totalPendente!==1?"'s":''} pendente${totalPendente!==1?'s':''} de baixa`}`;
+  document.getElementById('wa-text').textContent=msg;
+  processed._waMsg=msg;
+}
+
+/* =================== DEMONSTRATIVO GERENCIAL =================== */
+function renderReport(lasRows,lorRows,lowRows,baixasSet,facility,lmGmvCol,owGmvCol){
+  const allRows=[...lasRows,...lorRows,...lowRows];
+  const totalPrev=allRows.length;
+  const totalBaixado=allRows.filter(r=>baixasSet.has(r._ID)).length;
+  const totalPendente=totalPrev-totalBaixado;
+  const pctCobertura=totalPrev>0?((totalBaixado/totalPrev)*100):0;
+
+  const gmvPrev=sumGMV(lasRows,lmGmvCol)+sumGMV(lorRows,lmGmvCol)+sumGMV(lowRows,owGmvCol);
+  const gmvBaixado=sumGMV(lasRows.filter(r=>baixasSet.has(r._ID)),lmGmvCol)+sumGMV(lorRows.filter(r=>baixasSet.has(r._ID)),lmGmvCol)+sumGMV(lowRows.filter(r=>baixasSet.has(r._ID)),owGmvCol);
+  const gmvPendente=gmvPrev-gmvBaixado;
+
+  const allOk=totalPendente===0;
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const timeStr=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+  // Score color
+  let scoreClass='full', scoreTxt='Cobertura total';
+  if(pctCobertura<100&&pctCobertura>=90){scoreClass='high';scoreTxt='Cobertura alta';}
+  else if(pctCobertura<90&&pctCobertura>=70){scoreClass='mid';scoreTxt='Cobertura parcial';}
+  else if(pctCobertura<70){scoreClass='low-score';scoreTxt='Cobertura baixa';}
+
+  let progressColor='green';
+  if(pctCobertura<90) progressColor='amber';
+  if(pctCobertura<70) progressColor='red';
+
+  // Build group cards
+  function buildGroupCard(label,tagClass,rows,gmvCol){
+    const total=rows.length;
+    if(total===0){
+      return `<div class="group-card">
+        <div class="group-card-header empty">
+          <span class="group-tag ${tagClass}">${label}</span>
+          <div class="group-card-title empty">Sem IDs previstos</div>
+          <span class="group-status-icon">—</span>
+        </div>
+      </div>`;
+    }
+    const baixados=rows.filter(r=>baixasSet.has(r._ID));
+    const pendentes=rows.filter(r=>!baixasSet.has(r._ID));
+    const nBaixados=baixados.length;
+    const nPendentes=pendentes.length;
+    const pct=((nBaixados/total)*100);
+    const gmvTot=sumGMV(rows,gmvCol);
+    const gmvBx=sumGMV(baixados,gmvCol);
+    const gmvPend=sumGMV(pendentes,gmvCol);
+    const integral=nPendentes===0;
+    const headerClass=integral?'integral':'pending';
+    const titleTxt=integral?'Baixado integralmente':`${nPendentes} ID${nPendentes!==1?"'s":''} pendente${nPendentes!==1?'s':''}`;
+    const icon=integral?'✅':'⚠️';
+
+    let pctColor='green';
+    if(pct<90) pctColor='amber';
+    if(pct<70) pctColor='red';
+
+    // Pending chips (max 20 shown)
+    let pendingHTML='';
+    if(nPendentes>0){
+      const show=pendentes.slice(0,20);
+      const chips=show.map(r=>`<span class="pending-id-chip">${r._ID}</span>`).join('');
+      const more=nPendentes>20?`<span class="pending-more">+${nPendentes-20} mais</span>`:'';
+      pendingHTML=`<div class="pending-ids-wrap">
+        <div class="pending-ids-title">⚠️ IDs não baixados (${nPendentes})</div>
+        <div class="pending-ids-grid">${chips}${more}</div>
+      </div>`;
+    }
+
+    return `<div class="group-card">
+      <div class="group-card-header ${headerClass}">
+        <span class="group-tag ${tagClass}">${label}</span>
+        <div class="group-card-title ${headerClass}">${titleTxt}</div>
+        <span class="group-status-icon">${icon}</span>
+      </div>
+      <div class="group-progress-wrap">
+        <div class="group-progress-header">
+          <span class="group-progress-label">Cobertura de baixas</span>
+          <span class="group-progress-pct" style="color:var(--${pctColor==='green'?'green':pctColor==='amber'?'amber':'red'})">${pct.toFixed(1)}%</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill ${pctColor}" style="width:${pct.toFixed(1)}%"></div></div>
+      </div>
+      <div class="group-stats">
+        <div class="group-stat"><div class="group-stat-label">Previstos</div><div class="group-stat-value">${total}</div></div>
+        <div class="group-stat"><div class="group-stat-label">Baixados</div><div class="group-stat-value" style="color:var(--green)">${nBaixados}</div></div>
+        <div class="group-stat"><div class="group-stat-label">Pendentes</div><div class="group-stat-value" style="color:${nPendentes>0?'var(--red)':'var(--muted)'}">${nPendentes}</div></div>
+        <div class="group-stat"><div class="group-stat-label">GMV Previsto</div><div class="group-stat-value" style="font-size:13px">${fmtMoney(gmvTot)}</div></div>
+        <div class="group-stat"><div class="group-stat-label">GMV Baixado</div><div class="group-stat-value" style="font-size:13px;color:var(--green)">${fmtMoney(gmvBx)}</div></div>
+        <div class="group-stat"><div class="group-stat-label">GMV Pendente</div><div class="group-stat-value" style="font-size:13px;color:${gmvPend>0?'var(--red)':'var(--muted)'}">${fmtMoney(gmvPend)}</div></div>
+      </div>
+      ${pendingHTML}
+    </div>`;
+  }
+
+  const lasCard=buildGroupCard('LAS','las',lasRows,lmGmvCol);
+  const lorCard=buildGroupCard('LOR','lor',lorRows,lmGmvCol);
+  const lowCard=buildGroupCard('LOW','low',lowRows,owGmvCol);
+
+  document.getElementById('report-wrap').innerHTML=`
+    <div class="report-header">
+      <div class="report-header-left">
+        <div class="report-facility">Baixas de hoje — ${facility} 🦏</div>
+        <div class="report-subtitle">Demonstrativo gerencial · Análise de cobertura pós-baixas</div>
+        <span class="report-status-badge ${allOk?'badge-ok':'badge-pending'}">${allOk?'✅ Sem pendências':'⚠️ Pendências em aberto'}</span>
+      </div>
+      <div class="report-header-right">
+        <div class="report-date">${dateStr}</div>
+        <div class="report-timestamp">Gerado às ${timeStr}</div>
+      </div>
+    </div>
+
+    <div class="report-kpis">
+      <div class="kpi-cell">
+        <div class="kpi-label">IDs previstos</div>
+        <div class="kpi-value blue">${fmtNum(totalPrev)}</div>
+        <div class="kpi-sub">entre LAS, LOR e LOW</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">IDs baixados</div>
+        <div class="kpi-value green">${fmtNum(totalBaixado)}</div>
+        <div class="kpi-sub">${pctCobertura.toFixed(1)}% do previsto</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">IDs pendentes</div>
+        <div class="kpi-value ${totalPendente>0?'red':'green'}">${fmtNum(totalPendente)}</div>
+        <div class="kpi-sub">${totalPendente>0?'requer atenção':'tudo baixado'}</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">GMV baixado</div>
+        <div class="kpi-value" style="font-size:20px;color:var(--green)">${fmtMoney(gmvBaixado)}</div>
+        <div class="kpi-sub" style="color:${gmvPendente>0?'var(--red)':'var(--muted)'}">Pendente: ${fmtMoney(gmvPendente)}</div>
+      </div>
+    </div>
+
+    <div class="report-groups">
+      ${lowCard}
+      ${lorCard}
+      ${lasCard}
+    </div>
+
+    <div class="report-footer-bar">
+      <div class="perf-score ${scoreClass}">${pctCobertura.toFixed(1)}% — ${scoreTxt}</div>
+      <div class="perf-bar-track">
+        <div class="perf-bar-fill" style="width:${pctCobertura.toFixed(1)}%;background:${pctCobertura>=100?'var(--green)':pctCobertura>=90?'var(--blue)':pctCobertura>=70?'var(--amber)':'var(--red)'}"></div>
+      </div>
+      <span class="perf-label-right">Performance geral do dia</span>
+    </div>`;
+}
+
+/* =================== SAVE AS IMAGE =================== */
+async function saveAsImage(){
+  const btn=document.getElementById('btn-save-img');
+  btn.disabled=true;
+  btn.textContent='⏳ Gerando imagem…';
+  try{
+    const el=document.getElementById('report-wrap');
+    const canvas=await html2canvas(el,{
+      scale:2,
+      useCORS:true,
+      backgroundColor:'#FFFFFF',
+      logging:false
+    });
+    const link=document.createElement('a');
+    const date=new Date().toISOString().slice(0,10);
+    const facility=(processed.facility||'FILIAL').replace(/\s+/g,'_');
+    link.download=`Demonstrativo_${facility}_${date}.png`;
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  }catch(e){
+    alert('Erro ao gerar imagem: '+e.message);
+  }
+  btn.disabled=false;
+  btn.textContent='📸 Salvar como imagem';
+}
+
+/* =================== WHATSAPP COPY =================== */
+function copyMsg(){
+  const msg=processed._waMsg||'';
+  if(!msg) return;
+  navigator.clipboard.writeText(msg).then(()=>{
+    const btn=document.getElementById('btn-copy');
+    btn.textContent='✓ Copiado!';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copiar mensagem';btn.classList.remove('copied');},2000);
+  });
+}
+
+/* =================== MOTIVOS CHART =================== */
+function renderMotivosChart(allRows, indMotivoMap, lmGmvCol, owGmvCol, lmFull, owFull){
+  if(allRows.length===0){document.getElementById('motivos-section').style.display='none';return;}
+
+  // Função para pegar GMV de uma row (LM ou OW)
+  function getGmv(r){
+    const lmVal=parseFloat((r[lmGmvCol]||'0').toString().replace(',','.'));
+    const owVal=parseFloat((r[owGmvCol]||'0').toString().replace(',','.'));
+    const v=isNaN(lmVal)||lmVal===0?owVal:lmVal;
+    return isNaN(v)?0:v;
+  }
+
+  // Monta contagem: SIM → busca motivo no Indiana; NÃO → "Não está em DIT"
+  const counts={};   // motivo → {count, gmv}
+  allRows.forEach(r=>{
+    let motivo;
+    if(r.CHECK_WELL==='SIM'){
+      motivo=indMotivoMap[r._ID]||'Não está em DIT';
+    } else {
+      motivo='Não está em DIT';
+    }
+    if(!counts[motivo]) counts[motivo]={count:0,gmv:0};
+    counts[motivo].count++;
+    counts[motivo].gmv+=getGmv(r);
+  });
+
+  const total=allRows.length;
+  const totalGmv=Object.values(counts).reduce((s,v)=>s+v.gmv,0);
+
+  // Ordena por volume desc; "Não está em DIT" sempre por último
+  const sorted=Object.entries(counts).sort((a,b)=>{
+    if(a[0]==='Não está em DIT') return 1;
+    if(b[0]==='Não está em DIT') return -1;
+    return b[1].count-a[1].count;
+  });
+
+  const colors=['#3483FA','#00A650','#9B59B6','#F59E0B','#1ABC9C','#E67E22','#2ECC71','#8E44AD','#16A085','#D35400'];
+  const naoColor='#CCCCCC';
+
+  let rowsHTML='';
+  sorted.forEach(([motivo,data],i)=>{
+    const pct=((data.count/total)*100);
+    const pctStr=pct.toFixed(1)+'%';
+    const isNao=motivo==='Não está em DIT';
+    const color=isNao?naoColor:colors[i%colors.length];
+    const barWidth=Math.max(pct,0.5).toFixed(1);
+    const labelInBar=pct>=12?pctStr:'';
+    const labelStyle=isNao?'color:#999;font-style:italic':'';
+    rowsHTML+=`
+      <div class="motivo-row">
+        <div class="motivo-label" title="${motivo}" style="${labelStyle}">${motivo}</div>
+        <div class="motivo-bar-track">
+          <div class="motivo-bar-fill" style="width:${barWidth}%;background:${color};color:${isNao?'#666':'#fff'}">${labelInBar}</div>
+        </div>
+        <div class="motivo-count">${data.count}</div>
+        <div class="motivo-gmv">${fmtMoney(data.gmv)}</div>
+        <div class="motivo-pct">${pctStr}</div>
+      </div>`;
+  });
+
+  rowsHTML+=`<div class="motivos-divider"></div>
+    <div class="motivo-row total-row">
+      <div class="motivo-label">Total geral</div>
+      <div></div>
+      <div class="motivo-count">${total}</div>
+      <div class="motivo-gmv" style="color:var(--blue);font-weight:700">${fmtMoney(totalGmv)}</div>
+      <div class="motivo-pct">100%</div>
+    </div>`;
+
+  document.getElementById('motivos-wrap').innerHTML=`
+    <div class="motivos-header">
+      <div class="motivos-title">Check Motivo DIT</div>
+      <div class="motivos-total">${sorted.length} motivo${sorted.length!==1?'s':''} · ${total} IDs · ${fmtMoney(totalGmv)}</div>
+    </div>
+    <div class="motivos-body">
+      <div class="motivo-row motivo-header-row">
+        <div class="motivo-col-label">Motivo</div>
+        <div></div>
+        <div class="motivo-col-num">Qtd</div>
+        <div class="motivo-col-num">GMV USD</div>
+        <div class="motivo-col-num">%</div>
+      </div>
+      ${rowsHTML}
+    </div>`;
+
+  document.getElementById('motivos-section').style.display='block';
+}
+
+/* =================== RESET =================== */
+function resetAll(){
+  files={indiana:null,lm:null,ow:null,baixas:null};
+  processed={};
+  ['indiana','lm','ow','baixas'].forEach(k=>{
+    document.getElementById('file-'+k).value='';
+    const badge=document.getElementById('badge-'+k);
+    badge.textContent='aguardando';
+    badge.className='upload-status status-wait';
+    const card=document.getElementById('card-'+k);
+    card.classList.remove('loaded');
+    if(k==='baixas') card.classList.add('optional');
+  });
+  document.getElementById('results').style.display='none';
+  document.getElementById('whatsapp-section').style.display='none';
+  document.getElementById('report-section').style.display='none';
+  document.getElementById('motivos-section').style.display='none';
+  document.getElementById('error-box').style.display='none';
+  document.getElementById('metrics-grid').innerHTML='';
+  ['las','lor','low'].forEach(p=>document.getElementById('panel-'+p).innerHTML='');
+  document.getElementById('wa-text').textContent='';
+  document.getElementById('report-wrap').innerHTML='';
+  document.getElementById('motivos-wrap').innerHTML='';
+  document.getElementById('btn-run').style.display='block';
+  document.getElementById('btn-run').disabled=true;
+  document.getElementById('btn-refresh').style.display='none';
+  document.getElementById('btn-reset').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function refreshProcess(){
+  // Limpa apenas resultados e arquivo de pós-baixas, mantém Indiana/LM/OW
+  files.baixas=null;
+  document.getElementById('file-baixas').value='';
+  const badge=document.getElementById('badge-baixas');
+  badge.textContent='aguardando';
+  badge.className='upload-status status-wait';
+  const card=document.getElementById('card-baixas');
+  card.classList.remove('loaded');
+  card.classList.add('optional');
+  document.getElementById('results').style.display='none';
+  document.getElementById('whatsapp-section').style.display='none';
+  document.getElementById('report-section').style.display='none';
+  document.getElementById('motivos-section').style.display='none';
+  document.getElementById('error-box').style.display='none';
+  document.getElementById('metrics-grid').innerHTML='';
+  ['las','lor','low'].forEach(p=>document.getElementById('panel-'+p).innerHTML='');
+  document.getElementById('wa-text').textContent='';
+  document.getElementById('report-wrap').innerHTML='';
+  document.getElementById('motivos-wrap').innerHTML='';
+  document.getElementById('btn-run').style.display='block';
+  document.getElementById('btn-run').disabled=false;
+  document.getElementById('btn-refresh').style.display='none';
+  document.getElementById('btn-reset').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* =================== EXPORT =================== */
+function exportIDs(tag,filter){
+  const rows=processed[tag]||[];
+  const idCol=tag==='low'?processed.owIdCol:processed.lmIdCol;
+  const groupCol=tag==='low'?processed.owStatusCol:processed.lmTramosCol;
+  const gmvCol=tag==='low'?processed.owGmvCol:processed.lmGmvCol;
+  let filtered=rows;
+  if(filter==='SIM') filtered=rows.filter(r=>r.CHECK_WELL==='SIM');
+  if(filter==='NÃO') filtered=rows.filter(r=>r.CHECK_WELL==='NÃO');
+  if(filtered.length===0){alert('Nenhum registro encontrado para exportar.');return;}
+  const csvRows=[['SHP_SHIPMENT_ID',groupCol,'CHECK_WELL','GMV_USD']];
+  filtered.forEach(r=>{csvRows.push([r._ID||r[idCol]||'',r._TRAMOS||r._STATUS||r[groupCol]||'',r.CHECK_WELL,r[gmvCol]||'0']);});
+  const csv=csvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`${tag.toUpperCase()}_${filter}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
